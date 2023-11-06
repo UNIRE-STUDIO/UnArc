@@ -17,17 +17,17 @@ var recordCounter = document.querySelector(".game-header .hud #recordCounter");
 // Пауза
 var buttonPause = document.getElementById("pause");
 buttonPause.onclick = function () {
-    game.pauseIsActive(!game.isPause);
+    if (game.currentState == GameStates.PLAY) game.changeState(GameStates.PAUSE);
 }
 var buttonContinue = document.getElementById("continue");
 buttonContinue.onclick = function () {
-    game.pauseIsActive(false);
+    game.changeState(GameStates.PLAY);
 }
 
 var gameOverPanel = document.getElementById("game-over");
 var buttonRestart = document.getElementById("restart");
 buttonRestart.onclick = function () {
-    game.startGame();
+    game.changeState(GameStates.READYTOPLAY);
 }
 
 var uagent = navigator.userAgent.toLowerCase();
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // document.getElementById("size-map").innerHTML = canvas.width / 16 + "x" + canvas.height / 16
 
-    game.startGame();
+    game.loadGame();
     glManager.gameLoop();
 });
 
@@ -67,28 +67,20 @@ document.addEventListener("mousemove", function (e){
 });
 
 // Отлавливаев клики мышкой
-document.addEventListener('click', function (evt) {
-
+document.addEventListener('click', function (e) {
+    // if (game.currentState === GameStates.READYTOPLAY) {
+    //     game.changeState(GameStates.PLAY);
+    // }
 }, false);
 
 // Отлавливаев ввод с клавиатуры
 document.addEventListener('keydown', function (e) {
-    if (e.keyCode === 32) {
-        game.pauseIsActive(!game.isPause);
+    console.log(game.currentState );
+    if (e.keyCode === 80 && game.currentState == GameStates.PLAY){
+        game.changeState(GameStates.PAUSE);
     }
-    if (game.isPause) return;
-
-    if (e.keyCode === 37 || e.keyCode === 65) {
-        control.dir = 1;
-    }
-    else if (e.keyCode === 38 || e.keyCode === 87) {
-        control.dir = 2;
-    }
-    else if (e.which === 39 || e.which === 68) {
-        control.dir = 3;
-    }
-    else if (e.which === 40 || e.which === 83) {
-        control.dir = 4;
+    if (e.keyCode === 32 && game.currentState === GameStates.READYTOPLAY) {
+        game.changeState(GameStates.PLAY);
     }
 });
 
@@ -107,25 +99,52 @@ var control = {
     }
 }
 
+// Состояния в которых игра может находиться
+const GameStates = {READYTOPLAY: 0, PLAY: 1, PAUSE: 2, GAMEOVER: 3}
+
 var game = {
     score: 0,
-    isPause: false,
     balls: [],
+    currentState: null,
 
-    pauseIsActive(flag) {
-        this.isPause = flag;
-        buttonContinue.style.display = flag ? "block" : "none";
-        buttonPause.style.display = !flag ? "" : "none";
+    changeState(state){
+        switch (state) {
+            case GameStates.READYTOPLAY:
+                this.isPause = false;
+                this.score = 0;
+                scoreCounter.innerHTML = "" + game.score;
+                buttonPause.style.display = "block";
+                gameOverPanel.style.display = "none";
+                recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record');
+                this.balls = [];
+                this.balls.push(new ball()); // Создаём один шарик
+                game.currentState = GameStates.READYTOPLAY;
+            break;
+            case GameStates.PLAY:
+                if (!game.balls[0].isAcrive){
+                    game.balls[0].onActive();
+                }
+                buttonContinue.style.display = "none";
+                buttonPause.style.display = ""; 
+                game.currentState = GameStates.PLAY;
+            break;
+            case GameStates.PAUSE:
+                buttonContinue.style.display = "block";
+                buttonPause.style.display = "none";
+                game.currentState = GameStates.PAUSE;
+            break;
+            case GameStates.GAMEOVER:
+                buttonPause.style.display = "none";
+                gameOverPanel.style.display = "block";
+                game.currentState = GameStates.GAMEOVER;
+            break;
+            default:
+                break;
+        }
     },
-    startGame() {
-        this.isPause = false;
-        this.score = 0;
-        scoreCounter.innerHTML = "" + game.score;
-        buttonPause.style.display = "block";
-        gameOverPanel.style.display = "none";
+    loadGame(){
         if (localStorage.getItem('record') == null) localStorage.setItem('record', 0);
-        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record');
-        this.balls.push(new ball()); // Создаём один шарик
+        this.changeState(GameStates.READYTOPLAY);
     },
     addScore() {
         food.spawn();
@@ -136,10 +155,17 @@ var game = {
             recordCounter.innerHTML = "РЕКОРД: " + game.score;
         }
     },
-    gameOver() {
-        buttonPause.style.display = "none";
-        this.isPause = true;
-        gameOverPanel.style.display = "block";
+    restartGame(){
+        this.score = 0;
+        scoreCounter.innerHTML = "" + game.score;
+        buttonPause.style.display = "block";
+        gameOverPanel.style.display = "none";
+        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record');
+        
+
+        this.balls = [];
+        this.balls[0] = new ball(); // Создаём один шарик
+        this.isPause = false;
     }
 }
 
@@ -152,7 +178,7 @@ var config = {
 }
 
 function ball() {
-    this.speed = 2;
+    this.speed = 4;
     this.ballRadius = 10;
     this.isAcrive = false,
 
@@ -161,8 +187,8 @@ function ball() {
         y: 0
     },
     this.position = {
-        x: canvas.width / 2 - 90,
-        y: canvas.height - 30
+        x: 0,
+        y: 0
     },
 
     this.leftPos = {
@@ -183,7 +209,6 @@ function ball() {
     },
 
     this.update = function(){
-
         // Если шарик не активен
         if (this.isAcrive == false){
             
@@ -195,8 +220,8 @@ function ball() {
         else {
             
             // Если касаемся левой или правой стены
-            if (isCollisionWall(this.rightPos.x + this.velocity.x)
-             || isCollisionWall(this.leftPos.x + this.velocity.x)){
+            if (this.isCollisionWall(this.rightPos.x + this.velocity.x)
+             || this.isCollisionWall(this.leftPos.x + this.velocity.x)){
                 // Инвертирем вектор по горизонтали
                 this.velocity.x = -this.velocity.x;
             }
@@ -225,7 +250,7 @@ function ball() {
             }
             // Если шарик ниже ракетки
             else if (isUnderPaddle){
-                game.gameOver();
+                game.changeState(GameStates.GAMEOVER);
             }
 
             this.position.x += this.velocity.x;
@@ -242,9 +267,27 @@ function ball() {
 
             this.downPos.x = this.position.x;
             this.downPos.y = this.position.y + this.ballRadius;
+
+            this.collisionDetection();
         }
     },
+    this.isCollisionWall = function(posX){
+        return posX > canvas.width || posX < 0;
+    },
 
+    this.collisionDetection = function(){
+        for (var r = 0; r < grid.bricks.length; r++) {
+            for (var c = 0; c < grid.bricks.length; c++) {
+                if (grid.bricks[r][c] == null) break;
+                var b = grid.bricks[r][c];
+                var bWidth = grid.brickWidth;
+                var bHeight = grid.brickHeight;
+                if (b.status == 1){
+                        //
+                }
+            }
+        }
+    },
     this.render = function(){
         ctx.beginPath();
         ctx.arc(this.position.x, this.position.y, this.ballRadius,0,Math.PI*2,false);
@@ -253,11 +296,17 @@ function ball() {
         ctx.closePath();
     },
     this.onActive = function(){
+        this.velocity.y = this.speed;
+        this.velocity.x = randomRange(0,2) == 1 ? this.speed : -this.speed;
+
         this.isAcrive = true;
     },
     this.offActive = function(){
         this.isAcrive = false;
-
+        this.position.x = 10;
+        this.position.y = 10;
+        this.velocity.x = 0;
+        this.velocity.y = 0;
         this.position.x = paddle.position.x + paddle.size/2;
         this.position.y = paddle.position.y - paddle.size.y;
     }
@@ -371,27 +420,6 @@ var grid = {
     }
 }
 
-// Проверка касания боковых границ
-function isCollisionWall(posX){
-    return posX > canvas.width 
-    || posX < 0;
-}
-
-function collisionDetection (){
-    for (var r = 0; r < grid.bricks.length; r++) {
-        for (var c = 0; c < grid.bricks.length; c++) {
-            if (grid.bricks[r][c] == null) break;
-            var b = grid.bricks[r][c];
-            var bWidth = grid.brickWidth;
-            var bHeight = grid.brickHeight;
-            if (b.status == 1){
-                    //
-            }
-        }
-    }
-}
-
-
 
 // ИГРОВОЙ ЦИКЛ ................................................................
 
@@ -436,18 +464,18 @@ var glManager = {
         requestAnimFrame(glManager.gameLoop);
     },
     fpsUpdate(curLag) {
-        glManager.fps = (1000 / curLag).toFixed(1);
+        glManager.fps = (1000 / curLag).toFixed(0);
         fpsCounter.innerHTML = "FPS: " + glManager.fps;
     }
 }
 
 function update() {
-    if (game.isPause) return;
+    if (game.currentState == GameStates.GAMEOVER ||
+        game.currentState == GameStates.PAUSE) return;
     paddle.update();
     game.balls.forEach(element => {
         element.update();
     });
-    collisionDetection();
 }
 
 function render() {
