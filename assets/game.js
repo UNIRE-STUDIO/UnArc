@@ -277,7 +277,22 @@ function ball() {
     },
 
     this.collisionDetection = function(){
-
+        for (let i = 0; i < mapManager.currentMap.length; i++) {
+            var brick = mapManager.currentMap[i];
+            var xPos = brick.x * mapManager.brickWidth + mapManager.brickPadding * brick.x + mapManager.brickOffsetLeft;
+            var yPos = brick.y * mapManager.brickHeight + mapManager.brickPadding * brick.y + mapManager.brickOffsetTop;
+            
+            var nbrick = {x: xPos, y: yPos, width: mapManager.brickWidth, height: mapManager.brickHeight};
+            
+            var points = [this.leftPos, this.rightPos, this.topPos, this.downPos];
+            points.forEach(point => {
+                if (isInside(point, nbrick)){
+                    mapManager.currentMap.splice(i,1);
+                    this.velocity.y = -this.velocity.y; // Инвертирем вектор по вертикали
+                }
+            });
+            
+        }
     },
     this.render = function(){
         ctx.beginPath();
@@ -344,6 +359,14 @@ var mapManager = {
         element4: "#A3AB78",
         element5: "#BDE038"
     },
+    healthBlock: {
+        element1: 1, // Здоровье блоков
+        element2: 2,
+        element3: 3,
+        element4: 3,
+        element5: 3
+    },
+
     brickPadding: 5,
     brickOffsetTop: 40,
     brickOffsetLeft: 5,
@@ -351,6 +374,7 @@ var mapManager = {
     brickHeight: 20,
 
     currentMapId: 0,      // ID текущей карты
+    currentMap: [],
     maps: [],             // Храним распарсенные карты
     isLoad: false,
     
@@ -364,18 +388,29 @@ var mapManager = {
             });
     },
 
-    initializationMaps(objMaps){
+    // нужно менять относительную позицию на реальную в пикселях
+    initializationMaps(objMaps){ 
+        for (let i = 0; i < objMaps.length; i++) { // Добавляем кирпичикам показатель здоровья
+            for (let j = 0; j < objMaps[i].length; j++) {
+                objMaps[i][j].health = mapManager.healthBlock[objMaps[i][j].t];
+            }
+        }
         mapManager.maps = objMaps;
+        mapManager.loadMap();
+    },
+
+    loadMap(){
+        mapManager.currentMap = mapManager.maps[mapManager.currentMapId];
         mapManager.isLoad = true;
     },
 
     render() {
         if (!mapManager.isLoad) return;
-        for (let i = 0; i < mapManager.maps[mapManager.currentMapId].length; i++) {
-            var brick = mapManager.maps[mapManager.currentMapId][i];
+        for (let i = 0; i < mapManager.currentMap.length; i++) {
+            var brick = mapManager.currentMap[i];
             var xPos = brick.x * mapManager.brickWidth + mapManager.brickPadding * brick.x + mapManager.brickOffsetLeft;
             var yPos = brick.y * mapManager.brickHeight + mapManager.brickPadding * brick.y + mapManager.brickOffsetTop;
-            drawRect({x:xPos, y:yPos}, {x: mapManager.brickWidth, y: mapManager.brickHeight}, "#10454F" );
+            drawRect({x:xPos, y:yPos}, {x: mapManager.brickWidth, y: mapManager.brickHeight}, mapManager.colorsBlock[brick.t]);
         }
     }
 }
