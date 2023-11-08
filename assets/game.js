@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // document.getElementById("size-map").innerHTML = canvas.width / 16 + "x" + canvas.height / 16
-    mapManager.initializationBricks();
+    mapManager.loadJsonDoc();
     game.loadGame();
     glManager.gameLoop();
 });
@@ -277,17 +277,7 @@ function ball() {
     },
 
     this.collisionDetection = function(){
-        for (var r = 0; r < mapManager.bricks.length; r++) {
-            for (var c = 0; c < mapManager.bricks.length; c++) {
-                if (mapManager.bricks[r][c] == null) break;
-                var b = mapManager.bricks[r][c];
-                var bWidth = mapManager.brickWidth;
-                var bHeight = mapManager.brickHeight;
-                if (b.status == 1){
-                        //
-                }
-            }
-        }
+
     },
     this.render = function(){
         ctx.beginPath();
@@ -354,85 +344,38 @@ var mapManager = {
         element4: "#A3AB78",
         element5: "#BDE038"
     },
-    maxRowCount: 5,
     brickPadding: 5,
     brickOffsetTop: 40,
     brickOffsetLeft: 5,
-
-    maxCountChar: 24, // Временно
-
     brickWidth: 80,
     brickHeight: 20,
 
-    bricks: [],
+    currentMapId: 0,      // ID текущей карты
+    maps: [],             // Храним распарсенные карты
+    isLoad: false,
+    
 
-    curLevel: 0,
-    levels: [
-        "========#" +
-        "-=-=-=-=#" +
-        "-=-=-=-=#" +
-        "-=-=-=-=#" +
-        "--------%",
-    ],
+    loadJsonDoc(){
+        var url = 'assets/scene.json';
+        fetch(url)
+            .then(response => response.json())
+            .then(json => {
+                mapManager.initializationMaps(json);
+            });
+    },
 
-    initializationBricks() {
-        mapManager.bricks = [];
-
-        for (let i = 0; i < mapManager.maxRowCount; i++) {
-            mapManager.bricks[i] = [];
-        }
-
-        var r = 0;
-        var c = 0;
-        for (var charCounter = 0; r < mapManager.maxCountChar; charCounter++) {
-            var ch = mapManager.levels[mapManager.curLevel][charCounter];
-            if (ch == "-") {
-                mapManager.bricks[r][c] = { x: 0, y: 0, status: 1, type: 0 };
-                c++;
-                game.maxScore++;
-            }
-            else if (ch == "=") {
-                mapManager.bricks[r][c] = { x: 0, y: 0, status: 1, type: 1 };
-                c++;
-                game.maxScore++;
-            }
-            else if (ch == "#") {
-                r++;
-                c = 0;
-                continue;
-            }
-            else if (ch == "%") {
-                mapManager.rowCount = r + 1;
-                break;
-            }
-            else {
-                mapManager.bricks[r][c] = { x: 0, y: 0, status: 0, type: 0 };
-                c++;
-            }
-        }
+    initializationMaps(objMaps){
+        mapManager.maps = objMaps;
+        mapManager.isLoad = true;
     },
 
     render() {
-        for (var r = 0; r < mapManager.bricks.length; r++) {
-            for (var c = 0; c < mapManager.bricks[r].length; c++) {
-                if (mapManager.bricks[r][c].status == 1) {
-                    var brickX = (c * (mapManager.brickWidth + mapManager.brickPadding)) + mapManager.brickOffsetLeft;
-                    var brickY = (r * (mapManager.brickHeight + mapManager.brickPadding)) + mapManager.brickOffsetTop;
-                    mapManager.bricks[r][c].x = brickX;
-                    mapManager.bricks[r][c].y = brickY;
-                    ctx.beginPath();
-                    ctx.rect(brickX, brickY, mapManager.brickWidth, mapManager.brickHeight);
-                    if (mapManager.bricks[r][c].type == 0) {
-                        ctx.fillStyle = "#123412";
-                    }
-                    else {
-                        if (mapManager.bricks[r][c].hp == 2) ctx.fillStyle = "#343434";
-                        else ctx.fillStyle = "#898989";
-                    }
-                    ctx.fill();
-                    ctx.closePath();
-                }
-            }
+        if (!mapManager.isLoad) return;
+        for (let i = 0; i < mapManager.maps[mapManager.currentMapId].length; i++) {
+            var brick = mapManager.maps[mapManager.currentMapId][i];
+            var xPos = brick.x * mapManager.brickWidth + mapManager.brickPadding * brick.x + mapManager.brickOffsetLeft;
+            var yPos = brick.y * mapManager.brickHeight + mapManager.brickPadding * brick.y + mapManager.brickOffsetTop;
+            drawRect({x:xPos, y:yPos}, {x: mapManager.brickWidth, y: mapManager.brickHeight}, "#10454F" );
         }
     }
 }
