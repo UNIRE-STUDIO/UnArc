@@ -17,7 +17,7 @@ var recordCounter = document.querySelector(".game-header .hud #recordCounter");
 // Пауза
 var buttonPause = document.getElementById("pause");
 buttonPause.onclick = function () {
-    if (game.currentState == GameStates.PLAY) game.changeState(GameStates.PAUSE);
+    game.changeState(GameStates.PAUSE);
 }
 var buttonContinue = document.getElementById("continue");
 buttonContinue.onclick = function () {
@@ -27,7 +27,8 @@ buttonContinue.onclick = function () {
 var gameOverPanel = document.getElementById("game-over");
 var buttonRestart = document.getElementById("restart");
 buttonRestart.onclick = function () {
-    game.changeState(GameStates.READYTOPLAY);
+    // Костыль, который не позволяет одновременно срабатывать методу Click и Нажатию на кнопку рестарт
+    setTimeout(() => {  game.changeState(GameStates.READYTOPLAY); }, 50);
 }
 
 var uagent = navigator.userAgent.toLowerCase();
@@ -52,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // document.getElementById("size-map").innerHTML = canvas.width / 16 + "x" + canvas.height / 16
-
+    mapManager.initializationBricks();
     game.loadGame();
     glManager.gameLoop();
 });
@@ -68,21 +69,18 @@ document.addEventListener("mousemove", function (e){
 
 // Отлавливаев клики мышкой
 document.addEventListener('click', function (e) {
-    // if (game.currentState === GameStates.READYTOPLAY) {
-    //     game.changeState(GameStates.PLAY);
-    // }
+    game.changeState(GameStates.PLAY);
 }, false);
 
 // Отлавливаев ввод с клавиатуры
 document.addEventListener('keydown', function (e) {
-    console.log(game.currentState );
-    if (e.keyCode === 80 && game.currentState == GameStates.PLAY){
+    if (e.keyCode === 80){
         game.changeState(GameStates.PAUSE);
     }
-    if (e.keyCode === 32 && game.currentState === GameStates.READYTOPLAY) {
+    if (e.keyCode === 32) {
         game.changeState(GameStates.PLAY);
     }
-});
+}); 
 
 
 // СУЩНОСТИ ....................................................................
@@ -106,7 +104,7 @@ var game = {
     score: 0,
     balls: [],
     currentState: null,
-
+    
     changeState(state){
         switch (state) {
             case GameStates.READYTOPLAY:
@@ -121,6 +119,7 @@ var game = {
                 game.currentState = GameStates.READYTOPLAY;
             break;
             case GameStates.PLAY:
+                if (game.currentState != GameStates.READYTOPLAY) return;
                 if (!game.balls[0].isAcrive){
                     game.balls[0].onActive();
                 }
@@ -129,6 +128,7 @@ var game = {
                 game.currentState = GameStates.PLAY;
             break;
             case GameStates.PAUSE:
+                if (game.currentState != GameStates.PLAY) return;
                 buttonContinue.style.display = "block";
                 buttonPause.style.display = "none";
                 game.currentState = GameStates.PAUSE;
@@ -167,6 +167,7 @@ var game = {
         this.balls[0] = new ball(); // Создаём один шарик
         this.isPause = false;
     }
+    
 }
 
 var config = {
@@ -276,12 +277,12 @@ function ball() {
     },
 
     this.collisionDetection = function(){
-        for (var r = 0; r < grid.bricks.length; r++) {
-            for (var c = 0; c < grid.bricks.length; c++) {
-                if (grid.bricks[r][c] == null) break;
-                var b = grid.bricks[r][c];
-                var bWidth = grid.brickWidth;
-                var bHeight = grid.brickHeight;
+        for (var r = 0; r < mapManager.bricks.length; r++) {
+            for (var c = 0; c < mapManager.bricks.length; c++) {
+                if (mapManager.bricks[r][c] == null) break;
+                var b = mapManager.bricks[r][c];
+                var bWidth = mapManager.brickWidth;
+                var bHeight = mapManager.brickHeight;
                 if (b.status == 1){
                         //
                 }
@@ -344,72 +345,88 @@ var paddle = {
     }
 }
 
-var grid = {
+var mapManager = {
+
+    colorsBlock: {
+        element1: "#10454F", // Цвета блоков
+        element2: "#506266",
+        element3: "#818274",
+        element4: "#A3AB78",
+        element5: "#BDE038"
+    },
     maxRowCount: 5,
-    maxColumnCount: 5,
-    brickPadding: 10,
-    brickOffsetTop: 30,
-    brickOffsetLeft: 65,
+    brickPadding: 5,
+    brickOffsetTop: 40,
+    brickOffsetLeft: 5,
 
     maxCountChar: 24, // Временно
 
-    brickWidth: 75,
+    brickWidth: 80,
     brickHeight: 20,
 
     bricks: [],
 
-    initializationBricks(){
-        grid.bricks = [];
+    curLevel: 0,
+    levels: [
+        "========#" +
+        "-=-=-=-=#" +
+        "-=-=-=-=#" +
+        "-=-=-=-=#" +
+        "--------%",
+    ],
 
-        for (let i = 0; i < grid.maxRowCount; i++) {
-            grid.bricks[i] = [];
+    initializationBricks() {
+        mapManager.bricks = [];
+
+        for (let i = 0; i < mapManager.maxRowCount; i++) {
+            mapManager.bricks[i] = [];
         }
-        
+
         var r = 0;
         var c = 0;
-        for (var charCounter = 0; r < grid.maxCountChar; charCounter++){
-            var ch = game.levels[game.curLevel][charCounter];
-            if (ch == "-"){
-                grid.bricks[r][c] = {x: 0, y: 0, status: 1, type: 0};
+        for (var charCounter = 0; r < mapManager.maxCountChar; charCounter++) {
+            var ch = mapManager.levels[mapManager.curLevel][charCounter];
+            if (ch == "-") {
+                mapManager.bricks[r][c] = { x: 0, y: 0, status: 1, type: 0 };
                 c++;
                 game.maxScore++;
             }
-            else if (ch == "="){
-                grid.bricks[r][c] = {x: 0, y: 0, status: 1, type: 1};
+            else if (ch == "=") {
+                mapManager.bricks[r][c] = { x: 0, y: 0, status: 1, type: 1 };
                 c++;
                 game.maxScore++;
             }
-            else if (ch == "#"){
+            else if (ch == "#") {
                 r++;
                 c = 0;
                 continue;
             }
             else if (ch == "%") {
-                grid.rowCount = r+1;
+                mapManager.rowCount = r + 1;
                 break;
             }
-            else{
-                grid.bricks[r][c] = {x: 0, y: 0, status: 0, type: 0};
+            else {
+                mapManager.bricks[r][c] = { x: 0, y: 0, status: 0, type: 0 };
                 c++;
             }
         }
     },
 
-    render(){
-        for (var r = 0; r < grid.bricks.length; r++){
-            for (var c = 0; c < grid.bricks[r].length; c++){
-                if (grid.bricks[r][c].status == 1){
-                    var brickX = (c*(grid.brickWidth + grid.brickPadding)) + grid.brickOffsetLeft;
-                    var brickY = (r*(grid.brickHeight + grid.brickPadding)) + grid.brickOffsetTop;
-                    grid.bricks[r][c].x = brickX;
-                    grid.bricks[r][c].y = brickY;
+    render() {
+        for (var r = 0; r < mapManager.bricks.length; r++) {
+            for (var c = 0; c < mapManager.bricks[r].length; c++) {
+                if (mapManager.bricks[r][c].status == 1) {
+                    var brickX = (c * (mapManager.brickWidth + mapManager.brickPadding)) + mapManager.brickOffsetLeft;
+                    var brickY = (r * (mapManager.brickHeight + mapManager.brickPadding)) + mapManager.brickOffsetTop;
+                    mapManager.bricks[r][c].x = brickX;
+                    mapManager.bricks[r][c].y = brickY;
                     ctx.beginPath();
-                    ctx.rect(brickX, brickY, grid.brickWidth, grid.brickHeight);
-                    if (grid.bricks[r][c].type == 0){
+                    ctx.rect(brickX, brickY, mapManager.brickWidth, mapManager.brickHeight);
+                    if (mapManager.bricks[r][c].type == 0) {
                         ctx.fillStyle = "#123412";
                     }
                     else {
-                        if (grid.bricks[r][c].hp == 2) ctx.fillStyle = "#343434";
+                        if (mapManager.bricks[r][c].hp == 2) ctx.fillStyle = "#343434";
                         else ctx.fillStyle = "#898989";
                     }
                     ctx.fill();
@@ -484,7 +501,7 @@ function render() {
         element.render();
     });
     paddle.render();
-    grid.render();
+    mapManager.render();
 }
 
 // ВСПОМОГАТЕЛЬНЫЕ, УНИВЕРСАЛЬНЫЕ ФУНКЦИИ ................................................................
