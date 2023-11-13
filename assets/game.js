@@ -289,8 +289,8 @@ function ball() {
                 if (isInside(point, nbrick)){
                     mapManager.currentMap.splice(i,1);
                     if (index < 2)
-                        this.velocity.x = -this.velocity.x; // Инвертирем вектор по вертикали
-                    else
+                        this.velocity.x = -this.velocity.x; // Инвертирем вектор по горизонтали
+                    else 
                         this.velocity.y = -this.velocity.y; // Инвертирем вектор по вертикали
                 }
             });
