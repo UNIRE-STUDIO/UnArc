@@ -285,10 +285,13 @@ function ball() {
             var nbrick = {x: xPos, y: yPos, width: mapManager.brickWidth, height: mapManager.brickHeight};
             
             var points = [this.leftPos, this.rightPos, this.topPos, this.downPos];
-            points.forEach(point => {
+            points.forEach((point, index) => {
                 if (isInside(point, nbrick)){
                     mapManager.currentMap.splice(i,1);
-                    this.velocity.y = -this.velocity.y; // Инвертирем вектор по вертикали
+                    if (index < 2)
+                        this.velocity.x = -this.velocity.x; // Инвертирем вектор по вертикали
+                    else
+                        this.velocity.y = -this.velocity.y; // Инвертирем вектор по вертикали
                 }
             });
             
