@@ -143,6 +143,18 @@ body{
     box-shadow:0px -4px 0 #e3ed04 inset;
 }
 
+#levelMenu{
+    width: 200px;
+    height: 200px;
+    border-radius: 8px;
+    background: #070708dc;
+    
+    color: #c2c2c2;
+
+    box-shadow:0px -2px 0 #e3ed04 inset;
+    transition:all 0.3s;
+}
+
 .footer {
     margin-top: 5px;
     display: flex;
