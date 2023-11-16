@@ -21,7 +21,7 @@ buttonPause.onclick = function () {
 }
 var buttonContinue = document.getElementById("continue");
 buttonContinue.onclick = function () {
-    game.changeState(GameStates.PLAY);
+    game.changeState(GameStates.PAUSE);
 }
 
 var gameOverPanel = document.getElementById("game-over");
@@ -108,40 +108,61 @@ var game = {
     changeState(state){
         switch (state) {
             case GameStates.READYTOPLAY:
-                this.isPause = false;
-                this.score = 0;
-                scoreCounter.innerHTML = "" + game.score;
-                buttonPause.style.display = "block";
-                gameOverPanel.style.display = "none";
-                recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record');
-                this.balls = [];
-                this.balls.push(new ball()); // Создаём один шарик
-                game.currentState = GameStates.READYTOPLAY;
+                game._ReadyToPlay();
             break;
             case GameStates.PLAY:
                 if (game.currentState != GameStates.READYTOPLAY) return;
-                if (!game.balls[0].isAcrive){
-                    game.balls[0].onActive();
-                }
-                buttonContinue.style.display = "none";
-                buttonPause.style.display = ""; 
-                game.currentState = GameStates.PLAY;
+                game._Play();
             break;
             case GameStates.PAUSE:
-                if (game.currentState != GameStates.PLAY) return;
-                buttonContinue.style.display = "block";
-                buttonPause.style.display = "none";
-                game.currentState = GameStates.PAUSE;
+                game._Pause();
             break;
             case GameStates.GAMEOVER:
-                buttonPause.style.display = "none";
-                gameOverPanel.style.display = "block";
-                game.currentState = GameStates.GAMEOVER;
+                game._Gameover();
             break;
             default:
                 break;
         }
     },
+
+    // Режимы игры ...............................................
+    _ReadyToPlay(){
+        this.isPause = false;
+        this.score = 0;
+        scoreCounter.innerHTML = "" + game.score;
+        buttonPause.style.display = "block";
+        gameOverPanel.style.display = "none";
+        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record');
+        this.balls = [];
+        this.balls.push(new ball()); // Создаём один шарик
+        game.currentState = GameStates.READYTOPLAY;
+    },
+    _Play(){
+        if (!game.balls[0].isAcrive){
+            game.balls[0].onActive();
+        }
+        buttonContinue.style.display = "none";
+        buttonPause.style.display = ""; 
+        game.currentState = GameStates.PLAY;
+    },
+    _Pause(){
+        if (game.currentState == GameStates.PAUSE) {
+            game._Play();
+            return;
+        }
+        if (game.currentState != GameStates.PLAY) return;
+        buttonContinue.style.display = "block";
+        buttonPause.style.display = "none";
+        game.currentState = GameStates.PAUSE;
+    },
+    _Gameover(){
+        buttonPause.style.display = "none";
+                gameOverPanel.style.display = "block";
+                game.currentState = GameStates.GAMEOVER;
+    },
+    //................................................................
+
+
     loadGame(){
         if (localStorage.getItem('record') == null) localStorage.setItem('record', 0);
         this.changeState(GameStates.READYTOPLAY);
