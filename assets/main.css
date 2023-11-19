@@ -10,7 +10,6 @@ body{
     display: flex;
     justify-content: center;
     align-items: center;
-    
 }
 
 #shadow-game{
@@ -89,12 +88,24 @@ body{
     position: relative;
 }
 
+.ui-in-canvas{
+    position: absolute;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 60%;
+    height: 50%;
+    display: flex;
+    justify-content: end;
+    align-items: stretch;
+}
+
 #continue {
-    top: 40%;
-    left: calc(50% - 100px);
+    margin: auto;
     width: 200px;
     height: 46px;
-    position: absolute;
     display: none;
 
     border-radius: 15px;
@@ -144,8 +155,6 @@ body{
 }
 
 #levelMenu{
-    width: 200px;
-    height: 200px;
     border-radius: 8px;
     background: #070708dc;
     
