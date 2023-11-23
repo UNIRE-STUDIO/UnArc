@@ -7,12 +7,12 @@
 
 
 // ПОЛУЧАЕМ ССЫЛКИ НА HTML ОБЪЕКТЫ ................................
-var canvas = document.getElementById('myCanvas');
+var canvas = document.getElementById('my-canvas');
 var ctx = canvas.getContext('2d');
 
-var fpsCounter = document.querySelector(".hud #fpsCounter");
-var scoreCounter = document.querySelector(".game-header div #scoreCounter");
-var recordCounter = document.querySelector(".game-header .hud #recordCounter");
+var fpsCounter = document.querySelector(".hud #fps-counter");
+var scoreCounter = document.querySelector(".game-header div #score-counter");
+var recordCounter = document.querySelector(".game-header .hud #record-counter");
 
 // Пауза
 var buttonPause = document.getElementById("pause");
@@ -31,17 +31,34 @@ buttonRestart.onclick = function () {
     setTimeout(() => {  game.changeState(GameStates.READYTOPLAY); }, 50);
 }
 
-var uagent = navigator.userAgent.toLowerCase();
+var levelButtons = document.getElementsByClassName("level-buttoms");
+for (let i = 0; i < levelButtons.length; i++) {
+    levelButtons[i].onclick = function () {
+        
+    }
+}
+
+var halfScreenButton = document.getElementById("half-screen-button");
+halfScreenButton.onclick = function () {
+    config.changeDividerScreen();
+}
+
+window.addEventListener('resize', function() {
+    config.resizeGame();
+}, true);
 
 // ЗАГРУЗКА ДОКУМЕНТА ..........................................
+var uagent = navigator.userAgent.toLowerCase();
 document.addEventListener('DOMContentLoaded', function () {
 
     if (uagent.search("android") > -1) {
         config.updateConfigForAndroid();         //  Меняем настройки под мобильный телефон
     }
     else {
-        // // Внутренний размер окна — это ширина и высота области просмотра (вьюпорта).
-        // console.log(window.innerHeight);
+        // Внутренний размер окна — это ширина и высота области просмотра (вьюпорта).
+        console.log(window.innerHeight);
+
+        config.resizeGame();
 
         // // Адаптивно меняем размер канваса
         // if (window.innerHeight < 600) {
@@ -54,8 +71,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // document.getElementById("size-map").innerHTML = canvas.width / 16 + "x" + canvas.height / 16
     mapManager.loadJsonDoc();
-    game.loadGame();
-    glManager.gameLoop();
+    //game.loadGame();
+    //glManager.gameLoop();
 });
 
 // ПОЛЬЗОВАТЕЛЬСКИЙ ВВОД ..........................................
@@ -85,6 +102,24 @@ document.addEventListener('keydown', function (e) {
 
 // СУЩНОСТИ ....................................................................
 
+var config = {
+    dividerScreen: 1,
+
+    updateConfigForAndroid() {
+        
+    },
+
+    changeDividerScreen(){
+        if (config.dividerScreen == 1) config.dividerScreen = 2;
+        else config.dividerScreen = 1;
+        config.resizeGame();
+    },
+
+    resizeGame(){
+        canvas.height = window.innerHeight * 0.76 / config.dividerScreen;
+        canvas.width = window.innerWidth * 0.9 / config.dividerScreen;
+    }
+}
 
 var control = {
     position: {
@@ -132,7 +167,7 @@ var game = {
         scoreCounter.innerHTML = "" + game.score;
         buttonPause.style.display = "block";
         gameOverPanel.style.display = "none";
-        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record');
+        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record1');
         this.balls = [];
         this.balls.push(new ball()); // Создаём один шарик
         game.currentState = GameStates.READYTOPLAY;
@@ -164,15 +199,15 @@ var game = {
 
 
     loadGame(){
-        if (localStorage.getItem('record') == null) localStorage.setItem('record', 0);
+        if (localStorage.getItem('record1') == null) localStorage.setItem('record1', 0);
         this.changeState(GameStates.READYTOPLAY);
     },
     addScore() {
         food.spawn();
         game.score++;
         scoreCounter.innerHTML = "" + game.score;
-        if (game.score > localStorage.getItem('record')) {
-            localStorage.setItem('record', game.score);
+        if (game.score > localStorage.getItem('record1')) {
+            localStorage.setItem('record1', game.score);
             recordCounter.innerHTML = "РЕКОРД: " + game.score;
         }
     },
@@ -181,7 +216,7 @@ var game = {
         scoreCounter.innerHTML = "" + game.score;
         buttonPause.style.display = "block";
         gameOverPanel.style.display = "none";
-        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record');
+        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record1');
         
 
         this.balls = [];
@@ -189,14 +224,6 @@ var game = {
         this.isPause = false;
     }
     
-}
-
-var config = {
-    
-
-    updateConfigForAndroid() {
-        
-    }
 }
 
 function ball() {

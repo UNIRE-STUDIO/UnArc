@@ -12,14 +12,10 @@ body{
     align-items: center;
 }
 
-#shadow-game{
-    
-}
-
 #game {
     padding: 10px 20px 10px 20px;
     background-color: #161618;
-    box-shadow: 0px -1px 0 #e3ed04 inset, 0px 0px 40px 10px #161618;
+    box-shadow: 0 -0.2vh 0 #e3ed04 inset, 0px 0px 40px 10px #161618;
     border-radius: 9px;
 }
 
@@ -39,20 +35,16 @@ body{
     justify-content: space-between;
 }
 
-#fpsCounter {
+#fps-counter {
     color: #e3ed04;
     font-size:8pt;
     -moz-user-select: none;    -o-user-select: none;    -khtml-user-select: none;    -webkit-user-select: none;    user-select: none;
 }
 
-#scoreCounter {
+#score-counter {
     font-size: 40px;
     left: 50%;
     position: absolute;
-}
-
-#recordCounter {
-    
 }
 
 #pause {
@@ -75,7 +67,7 @@ body{
     cursor: pointer;
 }
 
-#myCanvas {
+#my-canvas {
     display: block;
     border-radius: 5px;
 }
@@ -89,16 +81,21 @@ body{
 }
 
 .ui-in-canvas{
-    position: absolute;
+    width: 70%;
+    height: 60%;
+
     margin: auto;
+
     top: 0;
     right: 0;
     bottom: 0;
     left: 0;
-    width: 60%;
-    height: 50%;
+
+    position: absolute;
+    
     display: flex;
-    justify-content: end;
+    flex-direction: column;
+    justify-content: center;
     align-items: stretch;
 }
 
@@ -154,15 +151,70 @@ body{
     box-shadow:0px -4px 0 #e3ed04 inset;
 }
 
-#levelMenu{
+#level-menu{
+    width: auto;
+    height: auto;
+    
+    padding: 10px;
+
+    color: #c2c2c2;
+
     border-radius: 8px;
     background: #070708dc;
-    
-    color: #c2c2c2;
 
     box-shadow:0px -2px 0 #e3ed04 inset;
     transition:all 0.3s;
 }
+
+#levels-label{
+    margin-top: 0;
+    margin-bottom: 10px;
+
+    font-size: 2rem;
+    text-align: center;
+    color: #c2c2c2;
+}
+
+#list-levels{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.level-buttoms{
+    width: auto;
+    height:auto;
+
+    padding: 6%;
+
+    margin: 1%;
+
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    background: #101013;
+    
+    box-shadow:0px -0.3vh 0 #e3ed04 inset;
+    transition:all 0.3s;
+}
+.level-buttoms:hover {
+    box-shadow:0px -0.8vh 0 #e3ed04 inset;
+    cursor: pointer;
+}
+.level-buttoms p{
+    width: 20px;
+    height: 20px;
+
+    padding: 0;
+    margin: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 2rem;
+    color: #c2c2c2;
+}
+
 
 .footer {
     margin-top: 5px;
@@ -175,10 +227,15 @@ body{
     font-size: 12px;
 }
 
-#size-map {
-    font-size: 12px;
+#half-screen-button{
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    background: #101013;
+    color: #c2c2c2;
+    cursor: pointer;
 }
 
-#gamepadCont{
-    display: none;
+#size-map {
+    font-size: 12px;
 }
