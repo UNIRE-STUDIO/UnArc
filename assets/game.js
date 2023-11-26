@@ -34,7 +34,7 @@ buttonRestart.onclick = function () {
 var levelButtons = document.getElementsByClassName("level-buttoms");
 for (let i = 0; i < levelButtons.length; i++) {
     levelButtons[i].onclick = function () {
-        
+        game.loadGame();
     }
 }
 
@@ -56,8 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     else {
         // Внутренний размер окна — это ширина и высота области просмотра (вьюпорта).
-        console.log(window.innerHeight);
-
+        
         config.resizeGame();
 
         // // Адаптивно меняем размер канваса
@@ -201,6 +200,7 @@ var game = {
     loadGame(){
         if (localStorage.getItem('record1') == null) localStorage.setItem('record1', 0);
         this.changeState(GameStates.READYTOPLAY);
+        glManager.gameLoop();
     },
     addScore() {
         food.spawn();
@@ -447,7 +447,6 @@ var mapManager = {
             }
         }
         mapManager.maps = objMaps;
-        mapManager.loadMap();
     },
 
     loadMap(){
