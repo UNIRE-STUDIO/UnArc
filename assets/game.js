@@ -11,8 +11,17 @@ var canvas = document.getElementById('my-canvas');
 var ctx = canvas.getContext('2d');
 
 var fpsCounter = document.querySelector(".hud #fps-counter");
-var scoreCounter = document.querySelector(".game-header div #score-counter");
-var recordCounter = document.querySelector(".game-header .hud #record-counter");
+
+// Список уровней
+var levelsPanel = document.getElementById("level-menu");
+
+// Уровни
+var levelButtons = document.getElementsByClassName("level-buttoms");
+for (let i = 0; i < levelButtons.length; i++) {
+    levelButtons[i].onclick = function () {
+        game.loadGame(i);
+    }
+}
 
 // Пауза
 var buttonPause = document.getElementById("pause");
@@ -29,13 +38,6 @@ var buttonRestart = document.getElementById("restart");
 buttonRestart.onclick = function () {
     // Костыль, который не позволяет одновременно срабатывать методу Click и Нажатию на кнопку рестарт
     setTimeout(() => {  game.changeState(GameStates.READYTOPLAY); }, 50);
-}
-
-var levelButtons = document.getElementsByClassName("level-buttoms");
-for (let i = 0; i < levelButtons.length; i++) {
-    levelButtons[i].onclick = function () {
-        game.loadGame();
-    }
 }
 
 var halfScreenButton = document.getElementById("half-screen-button");
@@ -56,8 +58,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     else {
         // Внутренний размер окна — это ширина и высота области просмотра (вьюпорта).
-        
-        config.resizeGame();
 
         // // Адаптивно меняем размер канваса
         // if (window.innerHeight < 600) {
@@ -69,9 +69,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // document.getElementById("size-map").innerHTML = canvas.width / 16 + "x" + canvas.height / 16
-    mapManager.loadJsonDoc();
-    //game.loadGame();
-    //glManager.gameLoop();
+    config.resizeGame();
+    levelManager.loadJsonDoc();
 });
 
 // ПОЛЬЗОВАТЕЛЬСКИЙ ВВОД ..........................................
@@ -103,6 +102,8 @@ document.addEventListener('keydown', function (e) {
 
 var config = {
     dividerScreen: 1,
+    h: canvas.height / 100,
+    w: canvas.width / 100,
 
     updateConfigForAndroid() {
         
@@ -117,6 +118,13 @@ var config = {
     resizeGame(){
         canvas.height = window.innerHeight * 0.76 / config.dividerScreen;
         canvas.width = window.innerWidth * 0.9 / config.dividerScreen;
+        config.h = canvas.height / 100;
+        config.w = canvas.width / 100;
+        paddle.initialization();
+        levelManager.initialization();
+        for (let i = 0; i < game.balls.length; i++) {
+            game.balls[i].initialization();
+        }
     }
 }
 
@@ -132,7 +140,7 @@ var control = {
 }
 
 // Состояния в которых игра может находиться
-const GameStates = {READYTOPLAY: 0, PLAY: 1, PAUSE: 2, GAMEOVER: 3}
+const GameStates = {LEVEL_SELECTION: 0, READYTOPLAY: 1, PLAY: 2, PAUSE: 3, GAMEOVER: 4}
 
 var game = {
     score: 0,
@@ -141,6 +149,9 @@ var game = {
     
     changeState(state){
         switch (state) {
+            case GameStates.LEVEL_SELECTION:
+                game._LevelSelection();    
+            break;
             case GameStates.READYTOPLAY:
                 game._ReadyToPlay();
             break;
@@ -160,13 +171,14 @@ var game = {
     },
 
     // Режимы игры ...............................................
+    _LevelSelection(){
+        levelsPanel.style.display = "block";
+    },
     _ReadyToPlay(){
         this.isPause = false;
-        this.score = 0;
-        scoreCounter.innerHTML = "" + game.score;
         buttonPause.style.display = "block";
+        levelsPanel.style.display = "none";
         gameOverPanel.style.display = "none";
-        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record1');
         this.balls = [];
         this.balls.push(new ball()); // Создаём один шарик
         game.currentState = GameStates.READYTOPLAY;
@@ -191,32 +203,19 @@ var game = {
     },
     _Gameover(){
         buttonPause.style.display = "none";
-                gameOverPanel.style.display = "block";
-                game.currentState = GameStates.GAMEOVER;
+        gameOverPanel.style.display = "block";
+        game.currentState = GameStates.GAMEOVER;
     },
     //................................................................
 
-
-    loadGame(){
-        if (localStorage.getItem('record1') == null) localStorage.setItem('record1', 0);
+    loadGame(level){
         this.changeState(GameStates.READYTOPLAY);
+        levelManager.loadMap(level);
         glManager.gameLoop();
     },
-    addScore() {
-        food.spawn();
-        game.score++;
-        scoreCounter.innerHTML = "" + game.score;
-        if (game.score > localStorage.getItem('record1')) {
-            localStorage.setItem('record1', game.score);
-            recordCounter.innerHTML = "РЕКОРД: " + game.score;
-        }
-    },
     restartGame(){
-        this.score = 0;
-        scoreCounter.innerHTML = "" + game.score;
         buttonPause.style.display = "block";
         gameOverPanel.style.display = "none";
-        recordCounter.innerHTML = "РЕКОРД: " + localStorage.getItem('record1');
         
 
         this.balls = [];
@@ -227,8 +226,8 @@ var game = {
 }
 
 function ball() {
-    this.speed = 4;
-    this.ballRadius = 10;
+    this.speed = (0.2 * config.w) + (0.2 * config.h);
+    this.ballRadius = 1 * config.w;
     this.isAcrive = false,
 
     this.velocity = {
@@ -257,13 +256,18 @@ function ball() {
         y: 0
     },
 
+    this.initialization = function(){
+        this.ballRadius = 1 * config.w;
+        this.speed = (0.2 * config.w) + (0.2 * config.h);
+    },
+
     this.update = function(){
         // Если шарик не активен
         if (this.isAcrive == false){
             
             // привязываем его положение к ракетке
             this.position.x = paddle.position.x + paddle.size.x/2;
-            this.position.y = paddle.position.y - 10;
+            this.position.y = paddle.position.y - paddle.size.y/2 - this.ballRadius/2;
             return;
         }
         else {
@@ -325,17 +329,17 @@ function ball() {
     },
 
     this.collisionDetection = function(){
-        for (let i = 0; i < mapManager.currentMap.length; i++) {
-            var brick = mapManager.currentMap[i];
-            var xPos = brick.x * mapManager.brickWidth + mapManager.brickPadding * brick.x + mapManager.brickOffsetLeft;
-            var yPos = brick.y * mapManager.brickHeight + mapManager.brickPadding * brick.y + mapManager.brickOffsetTop;
+        for (let i = 0; i < levelManager.currentLevel.length; i++) {
+            var brick = levelManager.currentLevel[i];
+            var xPos = brick.x * levelManager.brickWidth + levelManager.brickPaddingX * brick.x + levelManager.brickOffsetLeft;
+            var yPos = brick.y * levelManager.brickHeight + levelManager.brickPaddingY * brick.y + levelManager.brickOffsetTop;
             
-            var nbrick = {x: xPos, y: yPos, width: mapManager.brickWidth, height: mapManager.brickHeight};
+            var nbrick = {x: xPos, y: yPos, width: levelManager.brickWidth, height: levelManager.brickHeight};
             
             var points = [this.leftPos, this.rightPos, this.topPos, this.downPos];
             points.forEach((point, index) => {
                 if (isInside(point, nbrick)){
-                    mapManager.currentMap.splice(i,1);
+                    levelManager.currentLevel.splice(i,1);
                     if (index < 2)
                         this.velocity.x = -this.velocity.x; // Инвертирем вектор по горизонтали
                     else 
@@ -373,12 +377,18 @@ function ball() {
 
 var paddle = {
     size: {
-        x: 75,
-        y: 10
+        x: 0,
+        y: 0
     },
     position: {
         x: 0,
-        y: canvas.height-10
+        y: 0
+    },
+
+    initialization(){
+        paddle.size.x = 8 * config.w;
+        paddle.size.y = 2 * config.h;
+        paddle.position.y = canvas.height - paddle.size.y;
     },
     
     update(){
@@ -401,7 +411,7 @@ var paddle = {
     }
 }
 
-var mapManager = {
+var levelManager = {
 
     colorsBlock: {
         element1: "#10454F", // Цвета блоков
@@ -418,49 +428,59 @@ var mapManager = {
         element5: 3
     },
 
-    brickPadding: 5,
-    brickOffsetTop: 40,
-    brickOffsetLeft: 5,
-    brickWidth: 80,
-    brickHeight: 20,
+    brickPaddingX: 0,
+    brickPaddingY: 0,
+    brickOffsetTop: 0,
+    brickOffsetLeft: 0,
+    brickWidth: 0,
+    brickHeight: 0,
 
-    currentMapId: 0,      // ID текущей карты
-    currentMap: [],
-    maps: [],             // Храним распарсенные карты
+    currentLevelId: 0,      // ID текущей карты
+    currentLevel: [],
+    levels: [],             // Храним распарсенные карты
     isLoad: false,
     
+    initialization(){
+        levelManager.brickPaddingX = config.w * 0.26;
+        levelManager.brickPaddingY = config.h * 1;
+        levelManager.brickOffsetTop = config.h * 1;
+        levelManager.brickOffsetLeft = config.w * 0.26;
+        levelManager.brickHeight = config.h * 4;
+        levelManager.brickWidth = config.w * 8.8;
+    },
 
     loadJsonDoc(){
         var url = 'assets/scene.json';
         fetch(url)
             .then(response => response.json())
             .then(json => {
-                mapManager.initializationMaps(json);
+                levelManager.initializationMaps(json);
             });
     },
 
     // нужно менять относительную позицию на реальную в пикселях
-    initializationMaps(objMaps){ 
-        for (let i = 0; i < objMaps.length; i++) { // Добавляем кирпичикам показатель здоровья
-            for (let j = 0; j < objMaps[i].length; j++) {
-                objMaps[i][j].health = mapManager.healthBlock[objMaps[i][j].t];
+    initializationMaps(objLevel){ 
+        for (let i = 0; i < objLevel.length; i++) { // Добавляем кирпичикам показатель здоровья
+            for (let j = 0; j < objLevel[i].length; j++) {
+                objLevel[i][j].health = levelManager.healthBlock[objLevel[i][j].t];
             }
         }
-        mapManager.maps = objMaps;
+        levelManager.levels = objLevel;
     },
 
-    loadMap(){
-        mapManager.currentMap = mapManager.maps[mapManager.currentMapId];
-        mapManager.isLoad = true;
+    loadMap(levelId){
+        levelManager.currentLevelId = levelId;
+        levelManager.currentLevel = levelManager.levels[levelManager.currentLevelId];
+        levelManager.isLoad = true;
     },
 
     render() {
-        if (!mapManager.isLoad) return;
-        for (let i = 0; i < mapManager.currentMap.length; i++) {
-            var brick = mapManager.currentMap[i];
-            var xPos = brick.x * mapManager.brickWidth + mapManager.brickPadding * brick.x + mapManager.brickOffsetLeft;
-            var yPos = brick.y * mapManager.brickHeight + mapManager.brickPadding * brick.y + mapManager.brickOffsetTop;
-            drawRect({x:xPos, y:yPos}, {x: mapManager.brickWidth, y: mapManager.brickHeight}, mapManager.colorsBlock[brick.t]);
+        if (!levelManager.isLoad) return;
+        for (let i = 0; i < levelManager.currentLevel.length; i++) {
+            var brick = levelManager.currentLevel[i];
+            var xPos = brick.x * levelManager.brickWidth + levelManager.brickPaddingX * brick.x + levelManager.brickOffsetLeft;
+            var yPos = brick.y * levelManager.brickHeight + levelManager.brickPaddingY * brick.y + levelManager.brickOffsetTop;
+            drawRect({x:xPos, y:yPos}, {x: levelManager.brickWidth, y: levelManager.brickHeight}, levelManager.colorsBlock[brick.t]);
         }
     }
 }
@@ -529,69 +549,5 @@ function render() {
         element.render();
     });
     paddle.render();
-    mapManager.render();
-}
-
-// ВСПОМОГАТЕЛЬНЫЕ, УНИВЕРСАЛЬНЫЕ ФУНКЦИИ ................................................................
-
-var requestAnimFrame = (function () {
-    return window.requestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame ||
-        window.oRequestAnimationFrame ||
-        window.msRequestAnimationFrame ||
-        function (callback) {
-            window.setTimeout(callback, 1000 / 20);
-        };
-})();
-
-function randomRange(min, max) {
-    return Math.floor(Math.random() * (max - min)) + min;
-}
-
-// Функция проверяет попадает ли точка в область прямоугольника
-function isInside(pos, rect) {
-    return pos.x > rect.x && pos.x < rect.x + rect.width && pos.y < rect.y + rect.height && pos.y > rect.y
-}
-
-function drawRect(pos, scale, color) {
-    ctx.beginPath();
-    ctx.fillStyle = color;
-    ctx.fillRect(pos.x, pos.y, scale.x, scale.y);
-    ctx.fill();
-}
-
-function drawRoundRect(pos, scale, round, color) {
-    if (typeof ctx.roundRect === 'function'){
-        ctx.beginPath();
-        ctx.fillStyle = color;
-        ctx.roundRect(pos.x, pos.y, scale.x, scale.y, round);
-        ctx.fill();
-    }
-    else { // Если браузер не поддерживает ctx.roundRect, то рисуем круги
-        drawCircle({x:pos.x + 8, y:pos.y + 8}, scale, color);
-    }
-}
-
-function drawCircle(pos, radius, color) {
-    ctx.beginPath();
-    ctx.fillStyle = color;
-    ctx.arc(pos.x, pos.y, radius.x/2, 0, 2 * Math.PI, false);
-    ctx.fill();
-}
-
-
-//Function to get the mouse position
-function getMousePos(canvas, event) {
-    var rect = canvas.getBoundingClientRect();
-    return {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top
-    };
-}
-
-function drawText(text){
-    ctx.font = '10pt arial';
-    ctx.fillStyle = '#000000'
-    ctx.fillText('label: ' + text, 13, 50);
+    levelManager.render();
 }

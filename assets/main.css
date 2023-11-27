@@ -41,12 +41,6 @@ body{
     -moz-user-select: none;    -o-user-select: none;    -khtml-user-select: none;    -webkit-user-select: none;    user-select: none;
 }
 
-#score-counter {
-    font-size: 40px;
-    left: 50%;
-    position: absolute;
-}
-
 #pause {
     width: 55;
     height: 35;
