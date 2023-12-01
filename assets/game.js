@@ -1,7 +1,10 @@
+/*
+    - Прибавлять скорость ракетки к горизонтальной скорости мяча
 
 
 
 
+*/
 // ЗАГРУЗКА ИЗОБРАЖЕНИЙ ...........................................
 
 
@@ -36,8 +39,7 @@ buttonContinue.onclick = function () {
 var gameOverPanel = document.getElementById("game-over");
 var buttonRestart = document.getElementById("restart");
 buttonRestart.onclick = function () {
-    // Костыль, который не позволяет одновременно срабатывать методу Click и Нажатию на кнопку рестарт
-    setTimeout(() => {  game.changeState(GameStates.READYTOPLAY); }, 50);
+    game.changeState(GameStates.READYTOPLAY);
 }
 
 var halfScreenButton = document.getElementById("half-screen-button");
@@ -120,10 +122,10 @@ var config = {
         canvas.width = window.innerWidth * 0.9 / config.dividerScreen;
         config.h = canvas.height / 100;
         config.w = canvas.width / 100;
-        paddle.initialization();
-        levelManager.initialization();
+        paddle.updateFields();
+        levelManager.updateFields();
         for (let i = 0; i < game.balls.length; i++) {
-            game.balls[i].initialization();
+            game.balls[i].updateFields();
         }
     }
 }
@@ -153,7 +155,8 @@ var game = {
                 game._LevelSelection();    
             break;
             case GameStates.READYTOPLAY:
-                game._ReadyToPlay();
+                    // Костыль, который не позволяет одновременно срабатывать методу Click и Нажатию на кнопку рестарт или выбор уровня
+                    setTimeout(game._ReadyToPlay, 20);
             break;
             case GameStates.PLAY:
                 if (game.currentState != GameStates.READYTOPLAY) return;
@@ -175,12 +178,12 @@ var game = {
         levelsPanel.style.display = "block";
     },
     _ReadyToPlay(){
-        this.isPause = false;
+        game.isPause = false;
         buttonPause.style.display = "block";
         levelsPanel.style.display = "none";
         gameOverPanel.style.display = "none";
-        this.balls = [];
-        this.balls.push(new ball()); // Создаём один шарик
+        game.balls = [];
+        game.balls.push(new ball()); // Создаём один шарик
         game.currentState = GameStates.READYTOPLAY;
     },
     _Play(){
@@ -209,24 +212,24 @@ var game = {
     //................................................................
 
     loadGame(level){
-        this.changeState(GameStates.READYTOPLAY);
+        game.changeState(GameStates.READYTOPLAY);
         levelManager.loadMap(level);
         glManager.gameLoop();
     },
     restartGame(){
         buttonPause.style.display = "block";
         gameOverPanel.style.display = "none";
-        
 
-        this.balls = [];
-        this.balls[0] = new ball(); // Создаём один шарик
-        this.isPause = false;
+        game.balls = [];
+        game.balls[0] = new ball(); // Создаём один шарик
+        game.isPause = false;
     }
     
 }
 
 function ball() {
-    this.speed = (0.2 * config.w) + (0.2 * config.h);
+    this.speedRatio = 14;
+    this.speed = config.w + config.h;
     this.ballRadius = 1 * config.w;
     this.isAcrive = false,
 
@@ -256,9 +259,11 @@ function ball() {
         y: 0
     },
 
-    this.initialization = function(){
+    this.updateFields = function(){
         this.ballRadius = 1 * config.w;
-        this.speed = (0.2 * config.w) + (0.2 * config.h);
+        this.speed = (config.w + config.h) * this.speedRatio; // Скорость зависит от размера карты
+        this.velocity.x = this.velocity.x > 0 ? 1 : -1;
+        this.velocity.y = this.velocity.y > 0 ? 1 : -1;
     },
 
     this.update = function(){
@@ -267,7 +272,7 @@ function ball() {
             
             // привязываем его положение к ракетке
             this.position.x = paddle.position.x + paddle.size.x/2;
-            this.position.y = paddle.position.y - paddle.size.y/2 - this.ballRadius/2;
+            this.position.y = paddle.position.y - paddle.size.y/2 - this.ballRadius/2 - 1; // -1  Что-бы шарик был чуть выше над ракеткой
             return;
         }
         else {
@@ -279,7 +284,6 @@ function ball() {
                 this.velocity.x = -this.velocity.x;
             }
 
-            
             // Шарик находится над ракеткой по оси Х?
             var isOverPaddle = 
             this.position.x + this.ballRadius > paddle.position.x 
@@ -306,8 +310,8 @@ function ball() {
                 game.changeState(GameStates.GAMEOVER);
             }
 
-            this.position.x += this.velocity.x;
-            this.position.y += this.velocity.y;
+            this.position.x += (this.velocity.x * this.speed * (glManager.lag/1000));
+            this.position.y += (this.velocity.y * this.speed * (glManager.lag/1000));
 
             this.leftPos.x = this.position.x - this.ballRadius;
             this.leftPos.y = this.position.y;
@@ -331,8 +335,8 @@ function ball() {
     this.collisionDetection = function(){
         for (let i = 0; i < levelManager.currentLevel.length; i++) {
             var brick = levelManager.currentLevel[i];
-            var xPos = brick.x * levelManager.brickWidth + levelManager.brickPaddingX * brick.x + levelManager.brickOffsetLeft;
-            var yPos = brick.y * levelManager.brickHeight + levelManager.brickPaddingY * brick.y + levelManager.brickOffsetTop;
+            var xPos = (brick.x * levelManager.brickWidth) + (levelManager.brickPaddingX * brick.x) + levelManager.brickOffsetLeft;
+            var yPos = (brick.y * levelManager.brickHeight) + (levelManager.brickPaddingY * brick.y) + levelManager.brickOffsetTop;
             
             var nbrick = {x: xPos, y: yPos, width: levelManager.brickWidth, height: levelManager.brickHeight};
             
@@ -357,9 +361,9 @@ function ball() {
         ctx.closePath();
     },
     this.onActive = function(){
-        this.velocity.y = this.speed;
-        this.velocity.x = randomRange(0,2) == 1 ? this.speed : -this.speed;
-
+        this.velocity.y = -1;
+        this.velocity.x = randomRange(0,2) == 1 ? 1 : -1;
+        this.updateFields();
         this.isAcrive = true;
     },
     this.offActive = function(){
@@ -376,6 +380,7 @@ function ball() {
 // РЛК 14 00 Ту 204 РСД-391 64524 Сочи-Внуково
 
 var paddle = {
+    speed: 10,
     size: {
         x: 0,
         y: 0
@@ -385,7 +390,7 @@ var paddle = {
         y: 0
     },
 
-    initialization(){
+    updateFields(){
         paddle.size.x = 8 * config.w;
         paddle.size.y = 2 * config.h;
         paddle.position.y = canvas.height - paddle.size.y;
@@ -393,11 +398,12 @@ var paddle = {
     
     update(){
         if (control.relative.x > 0 && control.relative.x < canvas.width){
-            paddle.position.x = control.relative.x - paddle.size.x / 2;
+            var targetPos = control.relative.x - paddle.size.x / 2;
+            paddle.position.x = targetPos;                          // Доделать
             if (paddle.position.x + paddle.size.x > canvas.width){
                 paddle.position.x = canvas.width - paddle.size.x;
             }
-            if (paddle.position.x + paddle.size.x < paddle.size.x){ //    <----------------
+            if (paddle.position.x + paddle.size.x < paddle.size.x){
                 paddle.position.x = 0;
             }
         }
@@ -440,8 +446,8 @@ var levelManager = {
     levels: [],             // Храним распарсенные карты
     isLoad: false,
     
-    initialization(){
-        levelManager.brickPaddingX = config.w * 0.26;
+    updateFields(){
+        levelManager.brickPaddingX = config.w * 0.26; // в процентах
         levelManager.brickPaddingY = config.h * 1;
         levelManager.brickOffsetTop = config.h * 1;
         levelManager.brickOffsetLeft = config.w * 0.26;

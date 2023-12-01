@@ -17,7 +17,9 @@ function randomRange(min, max) {
 
 // Функция проверяет попадает ли точка в область прямоугольника
 function isInside(pos, rect) {
-    return pos.x > rect.x && pos.x < rect.x + rect.width && pos.y < rect.y + rect.height && pos.y > rect.y
+
+    // За левой гранью     и      перед правой гранью    и  за нижней гренью              и  перед верхней гранью
+    return pos.x > rect.x && pos.x < rect.x + rect.width && pos.y < rect.y + rect.height && pos.y > rect.y;
 }
 
 function drawRect(pos, scale, color) {
@@ -60,4 +62,8 @@ function drawText(text){
     ctx.font = '10pt arial';
     ctx.fillStyle = '#000000'
     ctx.fillText('label: ' + text, 13, 50);
+}
+
+function moveTo(current, target, speed){
+    
 }
