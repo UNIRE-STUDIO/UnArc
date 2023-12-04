@@ -64,6 +64,7 @@ function drawText(text){
     ctx.fillText('label: ' + text, 13, 50);
 }
 
-function moveTo(current, target, speed){
-    
+function moveTo(current, target, step){
+    var moveStep = (target - current)/step;
+    return current + moveStep;
 }

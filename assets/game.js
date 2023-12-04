@@ -1,8 +1,8 @@
 /*
     - Прибавлять скорость ракетки к горизонтальной скорости мяча
-
-
-
+    - Исправить баг с уничтожением блока к которому шарик не касался
+    - Мобильная версия
+    - Плавное движение ракетки ☻
 
 */
 // ЗАГРУЗКА ИЗОБРАЖЕНИЙ ...........................................
@@ -44,6 +44,7 @@ buttonRestart.onclick = function () {
 
 var halfScreenButton = document.getElementById("half-screen-button");
 halfScreenButton.onclick = function () {
+    game.changeState(GameStates.PAUSE);
     config.changeDividerScreen();
 }
 
@@ -118,10 +119,23 @@ var config = {
     },
 
     resizeGame(){
-        canvas.height = window.innerHeight * 0.76 / config.dividerScreen;
-        canvas.width = window.innerWidth * 0.9 / config.dividerScreen;
+        var newHeight = window.innerHeight * 0.76 / config.dividerScreen;
+        var newWidth = window.innerWidth * 0.9 / config.dividerScreen;
+
+        // Стараемся сохранить относительное положение шариков
+            for (let i = 0; i < game.balls.length; i++) {
+                var relativePosX = game.balls[i].position.x / canvas.width;
+                var relativePosY = game.balls[i].position.y / canvas.height;
+                game.balls[i].updatePos({x: relativePosX * newWidth, y: relativePosY * newHeight});
+            }
+        //
+
+        canvas.height = newHeight;
+        canvas.width = newWidth;
+        
         config.h = canvas.height / 100;
         config.w = canvas.width / 100;
+        
         paddle.updateFields();
         levelManager.updateFields();
         for (let i = 0; i < game.balls.length; i++) {
@@ -212,6 +226,7 @@ var game = {
     //................................................................
 
     loadGame(level){
+        if (levelManager.levels.length-1 < level) return; // Если уровня нет, то ничего не делаем
         game.changeState(GameStates.READYTOPLAY);
         levelManager.loadMap(level);
         glManager.gameLoop();
@@ -309,24 +324,30 @@ function ball() {
             else if (isUnderPaddle){
                 game.changeState(GameStates.GAMEOVER);
             }
-
-            this.position.x += (this.velocity.x * this.speed * (glManager.lag/1000));
-            this.position.y += (this.velocity.y * this.speed * (glManager.lag/1000));
-
-            this.leftPos.x = this.position.x - this.ballRadius;
-            this.leftPos.y = this.position.y;
-
-            this.rightPos.x = this.position.x + this.ballRadius;
-            this.rightPos.y = this.position.y;
-
-            this.topPos.x = this.position.x;
-            this.topPos.y = this.position.y  - this.ballRadius;
-
-            this.downPos.x = this.position.x;
-            this.downPos.y = this.position.y + this.ballRadius;
+            
+            var newPosX = this.position.x + (this.velocity.x * this.speed * (glManager.lag/1000));
+            var newPosY = this.position.y + (this.velocity.y * this.speed * (glManager.lag/1000));
+            this.updatePos({x: newPosX, y: newPosY});
 
             this.collisionDetection();
         }
+    },
+
+    this.updatePos = function(newPos){
+        this.position.x = newPos.x;
+        this.position.y = newPos.y;
+
+        this.leftPos.x = this.position.x - this.ballRadius;
+        this.leftPos.y = this.position.y;
+
+        this.rightPos.x = this.position.x + this.ballRadius;
+        this.rightPos.y = this.position.y;
+
+        this.topPos.x = this.position.x;
+        this.topPos.y = this.position.y  - this.ballRadius;
+
+        this.downPos.x = this.position.x;
+        this.downPos.y = this.position.y + this.ballRadius;
     },
     this.isCollisionWall = function(posX){
         return posX > canvas.width || posX < 0;
@@ -380,7 +401,7 @@ function ball() {
 // РЛК 14 00 Ту 204 РСД-391 64524 Сочи-Внуково
 
 var paddle = {
-    speed: 10,
+    smooth: 3,
     size: {
         x: 0,
         y: 0
@@ -397,15 +418,13 @@ var paddle = {
     },
     
     update(){
-        if (control.relative.x > 0 && control.relative.x < canvas.width){
-            var targetPos = control.relative.x - paddle.size.x / 2;
-            paddle.position.x = targetPos;                          // Доделать
-            if (paddle.position.x + paddle.size.x > canvas.width){
-                paddle.position.x = canvas.width - paddle.size.x;
-            }
-            if (paddle.position.x + paddle.size.x < paddle.size.x){
-                paddle.position.x = 0;
-            }
+        var targetPos = control.relative.x - paddle.size.x / 2;
+        paddle.position.x = moveTo(paddle.position.x, targetPos, (glManager.lag/10) * paddle.smooth);
+        if (paddle.position.x + paddle.size.x > canvas.width){
+            paddle.position.x = canvas.width - paddle.size.x;
+        }
+        if (paddle.position.x + paddle.size.x < paddle.size.x){
+            paddle.position.x = 0;
         }
     },
     render(){
