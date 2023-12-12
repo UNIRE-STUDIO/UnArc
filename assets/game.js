@@ -40,6 +40,7 @@ var gameOverPanel = document.getElementById("game-over");
 var buttonRestart = document.getElementById("restart");
 buttonRestart.onclick = function () {
     game.changeState(GameStates.READYTOPLAY);
+    levelManager.loadMap(levelManager.currentLevelID);
 }
 
 var halfScreenButton = document.getElementById("half-screen-button");
@@ -230,14 +231,6 @@ var game = {
         game.changeState(GameStates.READYTOPLAY);
         levelManager.loadMap(level);
         glManager.gameLoop();
-    },
-    restartGame(){
-        buttonPause.style.display = "block";
-        gameOverPanel.style.display = "none";
-
-        game.balls = [];
-        game.balls[0] = new ball(); // Создаём один шарик
-        game.isPause = false;
     }
     
 }
@@ -364,7 +357,30 @@ function ball() {
             var points = [this.leftPos, this.rightPos, this.topPos, this.downPos];
             points.forEach((point, index) => {
                 if (isInside(point, nbrick)){
-                    levelManager.currentLevel.splice(i,1);
+                    if (--brick.health == 0)
+                    {
+                        levelManager.currentLevel.splice(i,1);
+                    }
+                    else // Принудительно вытесняем шарик из кирпичика
+                    {
+                        // Переделать!!             <------------------------------------------------------------------------
+                        var centerBrickY = yPos + levelManager.brickHeight / 2;
+                        var centerBrickX = xPos + levelManager.brickWidth / 2;
+                        switch (index) {
+                            case 0:
+                                    this.position.x = centerBrickX + this.ballRadius + (levelManager.brickWidth / 2);
+                                break;
+                            case 1:
+                                    this.position.x = centerBrickX - this.ballRadius - (levelManager.brickWidth / 2);
+                                break;
+                            case 2:
+                                    this.position.y = centerBrickY + this.ballRadius + (levelManager.brickHeight / 2);
+                                break;
+                            case 3:
+                                    this.position.y = centerBrickY - this.ballRadius - (levelManager.brickHeight / 2);
+                                break;
+                        }
+                    }
                     if (index < 2)
                         this.velocity.x = -this.velocity.x; // Инвертирем вектор по горизонтали
                     else 
@@ -460,7 +476,7 @@ var levelManager = {
     brickWidth: 0,
     brickHeight: 0,
 
-    currentLevelId: 0,      // ID текущей карты
+    currentLevelID: 0,      // ID текущей карты
     currentLevel: [],
     levels: [],             // Храним распарсенные карты
     isLoad: false,
@@ -484,28 +500,37 @@ var levelManager = {
     },
 
     // нужно менять относительную позицию на реальную в пикселях
-    initializationMaps(objLevel){ 
-        for (let i = 0; i < objLevel.length; i++) { // Добавляем кирпичикам показатель здоровья
-            for (let j = 0; j < objLevel[i].length; j++) {
-                objLevel[i][j].health = levelManager.healthBlock[objLevel[i][j].t];
+    initializationMaps(objLevels){
+        for (let i = 0; i < objLevels.length; i++) // Добавляем кирпичикам показатель здоровья
+        { 
+            for (let j = 0; j < objLevels[i].length; j++) 
+            {
+                objLevels[i][j].health = levelManager.healthBlock[objLevels[i][j].t];
+
             }
         }
-        levelManager.levels = objLevel;
+        levelManager.levels = objLevels;
     },
 
     loadMap(levelId){
-        levelManager.currentLevelId = levelId;
-        levelManager.currentLevel = levelManager.levels[levelManager.currentLevelId];
+        levelManager.currentLevelID = levelId;
+        var curLevel = levelManager.levels[levelManager.currentLevelID];
+        var bricks = [];
+        for (let i = 0; i < curLevel.length; i++) {
+            bricks.push(Object.create(curLevel[i]));
+        }
+        levelManager.currentLevel = bricks;
         levelManager.isLoad = true;
     },
 
     render() {
         if (!levelManager.isLoad) return;
-        for (let i = 0; i < levelManager.currentLevel.length; i++) {
+        for (let i = 0; i < levelManager.currentLevel.length; i++) 
+        {
             var brick = levelManager.currentLevel[i];
             var xPos = brick.x * levelManager.brickWidth + levelManager.brickPaddingX * brick.x + levelManager.brickOffsetLeft;
             var yPos = brick.y * levelManager.brickHeight + levelManager.brickPaddingY * brick.y + levelManager.brickOffsetTop;
-            drawRect({x:xPos, y:yPos}, {x: levelManager.brickWidth, y: levelManager.brickHeight}, levelManager.colorsBlock[brick.t]);
+            drawRect({x:xPos, y:yPos}, {x: levelManager.brickWidth, y: levelManager.brickHeight}, levelManager.colorsBlock["element"+brick.health]);
         }
     }
 }
