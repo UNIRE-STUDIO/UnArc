@@ -14,6 +14,7 @@ var canvas = document.getElementById('my-canvas');
 var ctx = canvas.getContext('2d');
 
 var fpsCounter = document.querySelector(".hud #fps-counter");
+var levelCounter = document.querySelector(".hud #level-counter");
 
 // Список уровней
 var levelsPanel = document.getElementById("level-menu");
@@ -42,6 +43,25 @@ buttonRestart.onclick = function () {
     game.changeState(GameStates.READYTOPLAY);
     levelManager.loadMap(levelManager.currentLevelID);
 }
+
+// Уровень пройден
+var youWinPanel = document.getElementById("win");
+document.getElementById("menu-button").onclick = function () {
+    game.changeState(GameStates.LEVEL_SELECTION);
+}
+document.getElementById("next-level-button").onclick = function () {
+    var nextLevelId = levelManager.currentLevelID+1;
+    if (levelManager.levels.length-1 < nextLevelId)
+    {
+        // Если последний уровень
+    }
+    else
+    {
+        game.changeState(GameStates.READYTOPLAY);
+        levelManager.loadMap(nextLevelId);
+    } 
+}
+
 
 var halfScreenButton = document.getElementById("half-screen-button");
 halfScreenButton.onclick = function () {
@@ -75,6 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // document.getElementById("size-map").innerHTML = canvas.width / 16 + "x" + canvas.height / 16
     config.resizeGame();
     levelManager.loadJsonDoc();
+    glManager.gameLoop();
 });
 
 // ПОЛЬЗОВАТЕЛЬСКИЙ ВВОД ..........................................
@@ -157,12 +178,12 @@ var control = {
 }
 
 // Состояния в которых игра может находиться
-const GameStates = {LEVEL_SELECTION: 0, READYTOPLAY: 1, PLAY: 2, PAUSE: 3, GAMEOVER: 4}
+const GameStates = {LEVEL_SELECTION: 0, READYTOPLAY: 1, PLAY: 2, PAUSE: 3, GAMEOVER: 4, WIN: 5}
 
 var game = {
     score: 0,
     balls: [],
-    currentState: null,
+    currentState: GameStates.LEVEL_SELECTION,
     
     changeState(state){
         switch (state) {
@@ -183,6 +204,9 @@ var game = {
             case GameStates.GAMEOVER:
                 game._Gameover();
             break;
+            case GameStates.WIN:
+                game._Win();
+            break;
             default:
                 break;
         }
@@ -190,13 +214,17 @@ var game = {
 
     // Режимы игры ...............................................
     _LevelSelection(){
+        game.currentState = GameStates.LEVEL_SELECTION;
+        clearCanvas();
+        game.balls = [];
         levelsPanel.style.display = "block";
+        youWinPanel.style.display = "none";
     },
     _ReadyToPlay(){
-        game.isPause = false;
         buttonPause.style.display = "block";
         levelsPanel.style.display = "none";
         gameOverPanel.style.display = "none";
+        youWinPanel.style.display = "none";
         game.balls = [];
         game.balls.push(new ball()); // Создаём один шарик
         game.currentState = GameStates.READYTOPLAY;
@@ -224,13 +252,18 @@ var game = {
         gameOverPanel.style.display = "block";
         game.currentState = GameStates.GAMEOVER;
     },
+    _Win()
+    {
+        console.log("Win!");
+        youWinPanel.style.display = "block";
+        game.currentState = GameStates.WIN;
+    },
     //................................................................
 
     loadGame(level){
         if (levelManager.levels.length-1 < level) return; // Если уровня нет, то ничего не делаем
         game.changeState(GameStates.READYTOPLAY);
         levelManager.loadMap(level);
-        glManager.gameLoop();
     }
     
 }
@@ -360,6 +393,12 @@ function ball() {
                     if (--brick.health == 0)
                     {
                         levelManager.currentLevel.splice(i,1);
+                        
+                        if (levelManager.currentLevel.length === 0)
+                        {
+                            render();
+                            game.changeState(GameStates.WIN);
+                        }
                     }
                     else // Принудительно вытесняем шарик из кирпичика
                     {
@@ -521,6 +560,8 @@ var levelManager = {
         }
         levelManager.currentLevel = bricks;
         levelManager.isLoad = true;
+
+        levelCounter.innerHTML = "УРОВЕНЬ: " + (levelId+1);
     },
 
     render() {
@@ -585,8 +626,8 @@ var glManager = {
 }
 
 function update() {
-    if (game.currentState == GameStates.GAMEOVER ||
-        game.currentState == GameStates.PAUSE) return;
+    if (game.currentState != GameStates.READYTOPLAY &&
+        game.currentState != GameStates.PLAY) return;
     paddle.update();
     game.balls.forEach(element => {
         element.update();
@@ -594,10 +635,17 @@ function update() {
 }
 
 function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (game.currentState != GameStates.READYTOPLAY &&
+        game.currentState != GameStates.PLAY) return;
+    clearCanvas();
     game.balls.forEach(element => {
         element.render();
     });
     paddle.render();
     levelManager.render();
+}
+
+function clearCanvas()
+{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }

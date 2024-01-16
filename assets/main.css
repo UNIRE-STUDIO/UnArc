@@ -145,6 +145,68 @@ body{
     box-shadow:0px -4px 0 #e3ed04 inset;
 }
 
+#win
+{
+    top: 40%;
+    left: calc(50% - 200px);
+    width: 400px;
+    height: 120px;
+
+    position: absolute;
+    display: none;
+
+    border-radius: 15px;
+    background: #101013dc;
+}
+
+#you-win{
+    color: #c2c2c2;
+    text-align: center;
+}
+
+#win-buttons-div
+{
+    display: flex;
+    justify-content: center;
+}
+
+#menu-button
+{
+    width: 114px;
+    height: 45px;
+
+    margin-right: 30;
+
+    border-radius: 8px;
+    background: #070708dc;
+    border: none;
+    color: #c2c2c2;
+
+    box-shadow:0px -2px 0 #e3ed04 inset;
+    transition:all 0.3s;
+}
+#menu-button:hover{
+    box-shadow:0px -4px 0 #e3ed04 inset;
+}
+
+#next-level-button
+{
+    width: 114px;
+    height: 45px;
+    border-radius: 8px;
+    background: #070708dc;
+    border: none;
+    color: #c2c2c2;
+
+    box-shadow:0px -2px 0 #e3ed04 inset;
+    transition:all 0.3s;
+}
+#next-level-button:hover{
+    box-shadow:0px -4px 0 #e3ed04 inset;
+}
+
+/********************************************/
+
 #level-menu{
     width: auto;
     height: auto;
