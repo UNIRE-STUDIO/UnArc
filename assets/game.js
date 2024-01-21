@@ -32,7 +32,9 @@ var buttonPause = document.getElementById("pause");
 buttonPause.onclick = function () {
     game.changeState(GameStates.PAUSE);
 }
-var buttonContinue = document.getElementById("continue");
+
+var pausePanel = document.getElementById("pause-panel");
+var buttonContinue = document.getElementById("continue-button");
 buttonContinue.onclick = function () {
     game.changeState(GameStates.PAUSE);
 }
@@ -65,9 +67,20 @@ document.getElementById("next-level-button").onclick = function () {
 
 var halfScreenButton = document.getElementById("half-screen-button");
 halfScreenButton.onclick = function () {
-    game.changeState(GameStates.PAUSE);
+    if (game.currentState != GameStates.PAUSE)
+    {
+        game.changeState(GameStates.PAUSE);
+    }
     config.changeDividerScreen();
+    halfScreenButton.blur();
 }
+
+var changeControlButton = document.getElementById("change-control-button");
+changeControlButton.onclick = () => 
+{
+    control.changeControl();
+    changeControlButton.blur();
+};
 
 window.addEventListener('resize', function() {
     config.resizeGame();
@@ -96,32 +109,30 @@ document.addEventListener('DOMContentLoaded', function () {
     config.resizeGame();
     levelManager.loadJsonDoc();
     glManager.gameLoop();
+    game.changeState(GameStates.LEVEL_SELECTION);
+
+    // Если отсутствует сохранение
+    if (localStorage.getItem('unArcControl') == null)
+    {
+        localStorage.setItem('unArcControl', 0);
+    }
+    else if (localStorage.getItem('unArcControl') == 1)
+    {
+        control.mouseControl = false;
+        changeControlButton.innerHTML = control.mouseControl ? "Mouse" : "Keyboard";
+    }
 });
 
 // ПОЛЬЗОВАТЕЛЬСКИЙ ВВОД ..........................................
 
-document.addEventListener("mousemove", function (e){
-    control.position.x = e.clientX - canvas.getBoundingClientRect().left;
-    control.position.y = e.clientY - canvas.getBoundingClientRect().top;
-    control.relative.x = control.position.x - canvas.offsetLeft;
-    control.relative.y = control.position.y - canvas.offsetTop;
-});
+document.addEventListener("mousemove", (e) => control.setMouseMove(e));
 
 // Отлавливаев клики мышкой
-document.addEventListener('click', function (e) {
-    game.changeState(GameStates.PLAY);
-}, false);
+document.addEventListener('click', (e) => control.setClick(e), false);
 
 // Отлавливаев ввод с клавиатуры
-document.addEventListener('keydown', function (e) {
-    if (e.keyCode === 80){
-        game.changeState(GameStates.PAUSE);
-    }
-    if (e.keyCode === 32) {
-        game.changeState(GameStates.PLAY);
-    }
-}); 
-
+document.addEventListener('keydown', (e) => control.setKeydown(e)); 
+document.addEventListener('keyup', (e) => control.setKeyup(e)); 
 
 // СУЩНОСТИ ....................................................................
 
@@ -167,13 +178,79 @@ var config = {
 }
 
 var control = {
+    mouseControl: true,
+    speed: 1,
+    positive: false,
+    negative: false,
     position: {
         x: 0,
         y: 0
     },
-    relative: {
-        x: 0,
-        y: 0
+    changeControl()
+    {
+        control.mouseControl = !control.mouseControl;
+        changeControlButton.innerHTML = control.mouseControl ? "Mouse" : "Keyboard";
+        localStorage.setItem('unArcControl', control.mouseControl ? 0 : 1);
+    },
+    setClick(e)
+    {
+        if (!isInside({x: control.position.x, y: control.position.y},
+            {x: 0, y: 0, width: canvas.width, height: canvas.height})) return;
+        // Добавить условие "В пределах канваса"
+        game.changeState(GameStates.PLAY);
+    },
+    setMouseMove(e)
+    {
+        if (!control.mouseControl) return;
+        var posX = e.clientX - canvas.getBoundingClientRect().left;
+        var posY = e.clientY - canvas.getBoundingClientRect().top;
+        control.position.x = posX - canvas.offsetLeft;
+        control.position.y = posY - canvas.offsetTop;
+    },
+    setKeydown(e)
+    {
+        if (e.keyCode === 80){
+            game.changeState(GameStates.PAUSE);
+        }
+        if (e.keyCode === 32) {
+            game.changeState(GameStates.PLAY);
+        }
+
+        if (control.mouseControl) return;
+
+        if (e.keyCode === 37) 
+        {
+            control.negative = true;
+        }
+        if (e.keyCode === 39) 
+        {
+            control.positive = true;
+        }
+    },
+    setKeyup(e){
+        if (e.keyCode === 37) 
+        {
+            control.negative = false;
+        }
+        if (e.keyCode === 39) 
+        {
+            control.positive = false;
+        }
+    },
+    update(){
+        if (control.mouseControl) return;
+
+        if (control.negative) {
+            control.position.x -= control.speed * canvas.width / 100;
+            if (control.position.x < paddle.size.x/2) 
+            control.position.x = paddle.size.x/2;
+        }
+        if (control.positive) 
+        {
+            
+            control.position.x += control.speed * canvas.width / 100;
+            if (control.position.x > canvas.width) control.position.x = canvas.width - paddle.size.x / 2;
+        }
     }
 }
 
@@ -219,6 +296,8 @@ var game = {
         game.balls = [];
         levelsPanel.style.display = "block";
         youWinPanel.style.display = "none";
+        buttonPause.style.display = "none";
+        pausePanel.style.display = "none";
     },
     _ReadyToPlay(){
         buttonPause.style.display = "block";
@@ -233,7 +312,7 @@ var game = {
         if (!game.balls[0].isAcrive){
             game.balls[0].onActive();
         }
-        buttonContinue.style.display = "none";
+        pausePanel.style.display = "none";
         buttonPause.style.display = ""; 
         game.currentState = GameStates.PLAY;
     },
@@ -243,7 +322,7 @@ var game = {
             return;
         }
         if (game.currentState != GameStates.PLAY) return;
-        buttonContinue.style.display = "block";
+        pausePanel.style.display = "block";
         buttonPause.style.display = "none";
         game.currentState = GameStates.PAUSE;
     },
@@ -473,7 +552,7 @@ var paddle = {
     },
     
     update(){
-        var targetPos = control.relative.x - paddle.size.x / 2;
+        var targetPos = control.position.x - paddle.size.x / 2;
         paddle.position.x = moveTo(paddle.position.x, targetPos, (glManager.lag/10) * paddle.smooth);
         if (paddle.position.x + paddle.size.x > canvas.width){
             paddle.position.x = canvas.width - paddle.size.x;
@@ -564,7 +643,8 @@ var levelManager = {
         levelCounter.innerHTML = "УРОВЕНЬ: " + (levelId+1);
     },
 
-    render() {
+    render() 
+    {
         if (!levelManager.isLoad) return;
         for (let i = 0; i < levelManager.currentLevel.length; i++) 
         {
@@ -628,6 +708,8 @@ var glManager = {
 function update() {
     if (game.currentState != GameStates.READYTOPLAY &&
         game.currentState != GameStates.PLAY) return;
+    
+    control.update();
     paddle.update();
     game.balls.forEach(element => {
         element.update();
@@ -636,7 +718,8 @@ function update() {
 
 function render() {
     if (game.currentState != GameStates.READYTOPLAY &&
-        game.currentState != GameStates.PLAY) return;
+        game.currentState != GameStates.PLAY &&
+        game.currentState != GameStates.PAUSE) return;
     clearCanvas();
     game.balls.forEach(element => {
         element.render();

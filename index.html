@@ -39,7 +39,13 @@
                         <canvas id="my-canvas">
                         </canvas>
                         <div class="ui-in-canvas">
-                            <button id="continue" name="continue" type="button">ПРОДОЛЖИТЬ</button>
+                            <div id="pause-panel">
+                                <p id="pause-label">Пауза</p>
+                                <div id="pause-panel-buttons-div">
+                                    <button id="menu-button" name="menu-button" type="button">Меню</button>
+                                    <button id="continue-button" name="continue-button" type="button">Продолжить</button>
+                                </div>
+                            </div>
                             <div id="game-over">
                                 <p id="you-lose">Вы проиграли</p>
                                 <button id="restart" name="restart" type="button">РЕСТАРТ</button>
@@ -71,9 +77,11 @@
                         </div>
                     </div>
                     <div class="footer">
-                        <div></div>
                         <div>
-                            <span id="version">версия: 0.0.3</span>
+                            <button id="change-control-button" name="change-control-button" type="button">Mouse</button>
+                        </div>
+                        <div>
+                            <span id="version">версия: 0.0.4</span>
                             <button id="half-screen-button" name="half-screen-button" type="button">1/2</button>
                         </div>
                     </div>
