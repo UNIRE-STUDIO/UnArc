@@ -28,8 +28,8 @@ for (let i = 0; i < levelButtons.length; i++) {
 }
 
 // Пауза
-var buttonPause = document.getElementById("pause");
-buttonPause.onclick = function () {
+var pauseButton = document.getElementById("pause-button");
+pauseButton.onclick = function () {
     game.changeState(GameStates.PAUSE);
 }
 
@@ -296,11 +296,11 @@ var game = {
         game.balls = [];
         levelsPanel.style.display = "block";
         youWinPanel.style.display = "none";
-        buttonPause.style.display = "none";
+        pauseButton.style.display = "none";
         pausePanel.style.display = "none";
     },
     _ReadyToPlay(){
-        buttonPause.style.display = "block";
+        pauseButton.style.display = "block";
         levelsPanel.style.display = "none";
         gameOverPanel.style.display = "none";
         youWinPanel.style.display = "none";
@@ -313,7 +313,7 @@ var game = {
             game.balls[0].onActive();
         }
         pausePanel.style.display = "none";
-        buttonPause.style.display = ""; 
+        pauseButton.style.display = ""; 
         game.currentState = GameStates.PLAY;
     },
     _Pause(){
@@ -323,11 +323,11 @@ var game = {
         }
         if (game.currentState != GameStates.PLAY) return;
         pausePanel.style.display = "block";
-        buttonPause.style.display = "none";
+        pauseButton.style.display = "none";
         game.currentState = GameStates.PAUSE;
     },
     _Gameover(){
-        buttonPause.style.display = "none";
+        pauseButton.style.display = "none";
         gameOverPanel.style.display = "block";
         game.currentState = GameStates.GAMEOVER;
     },
