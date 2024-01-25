@@ -68,3 +68,8 @@ function moveTo(current, target, step){
     var moveStep = (target - current)/step;
     return current + moveStep;
 }
+
+function clearCanvas()
+{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
