@@ -171,9 +171,9 @@ var config = {
         
         paddle.updateFields();
         levelManager.updateFields();
-        for (let i = 0; i < game.balls.length; i++) {
-            game.balls[i].updateFields();
-        }
+        game.balls.forEach(b => b.updateFields());
+        game.bonuses.forEach(b => b.updateFields());
+        game.bullets.forEach(b => b.updateFields());
     }
 }
 
@@ -260,6 +260,9 @@ const GameStates = {LEVEL_SELECTION: 0, READYTOPLAY: 1, PLAY: 2, PAUSE: 3, GAMEO
 var game = {
     score: 0,
     balls: [],
+    bonuses: [],
+    bullets: [],
+    bonusProbability: 6,
     currentState: GameStates.LEVEL_SELECTION,
     
     changeState(state){
@@ -305,6 +308,8 @@ var game = {
         gameOverPanel.style.display = "none";
         youWinPanel.style.display = "none";
         game.balls = [];
+        game.bullets = [];
+        game.bonuses = [];
         game.balls.push(new ball()); // Создаём один шарик
         game.currentState = GameStates.READYTOPLAY;
     },
@@ -471,7 +476,12 @@ function ball() {
                 if (isInside(point, nbrick)){
                     if (--brick.health == 0)
                     {
-                        levelManager.currentLevel.splice(i,1);
+                        levelManager.currentLevel.splice(i,1); // Вынести в гейм
+                        if (randomRange(0, game.bonusProbability) == 0){ // Создаём bonus
+                            var b = new bonus({x: xPos + levelManager.brickWidth/2, y: yPos});
+                            b.updateFields();
+                            game.bonuses.push(b); 
+                        }
                         
                         if (levelManager.currentLevel.length === 0)
                         {
@@ -536,6 +546,7 @@ function ball() {
 
 var paddle = {
     smooth: 3,
+    fire: false,
     size: {
         x: 0,
         y: 0
@@ -567,6 +578,78 @@ var paddle = {
         ctx.fillStyle = "#EAF33A";
         ctx.fill();
         ctx.closePath();
+    }, 
+
+    startFire(){
+        if (this.fire) return;
+        this.fire = true;
+        // повторить с интервалом 2 секунды
+        let fire = setInterval(() => {
+            var b = new bullet({x:this.position.x + this.size.x/2, y:this.position.y});
+            b.updateFields();
+            game.bullets.push(b);
+        }, 500);
+
+        // остановить вывод через 5 секунд
+        setTimeout(() => { clearInterval(fire); this.fire = false; }, 6000);
+    }
+}
+
+function bullet(pos) {
+    this.speedRatio = 1;
+    this.speed = config.w + config.h;
+    this.widthRatio = 1;
+    this.heightRatio = 3;
+    this.width = 1 * config.w;
+    this.height = 1 * config.h;
+
+    this.position = {
+        x: pos.x - this.width/2,
+        y: pos.y
+    },
+
+    this.updateFields = function(){
+        this.width = config.w * this.widthRatio;
+        this.height = config.h * this.height;
+        this.speed = (config.w + config.h) * this.speedRatio; // Скорость зависит от размера карты
+    },
+
+    this.update = function(){
+        this.position.y -= this.speed;
+        this.collisionDetection();
+    },
+
+    this.collisionDetection = function(){
+        if (this.position.y < 0) game.bullets.splice(game.bullets.indexOf(this), 1);
+        for (let i = 0; i < levelManager.currentLevel.length; i++) {
+            var brick = levelManager.currentLevel[i];
+            var xPos = (brick.x * levelManager.brickWidth) + (levelManager.brickPaddingX * brick.x) + levelManager.brickOffsetLeft;
+            var yPos = (brick.y * levelManager.brickHeight) + (levelManager.brickPaddingY * brick.y) + levelManager.brickOffsetTop;
+            
+            var nbrick = {x: xPos, y: yPos, width: levelManager.brickWidth, height: levelManager.brickHeight};
+            
+            if (isInside(this.position, nbrick)){
+                if (--brick.health == 0)
+                {
+                    levelManager.currentLevel.splice(i,1); // Вынести в гейм
+                    if (randomRange(0, game.bonusProbability) == 0){ // Создаём bonus
+                        var b = new bonus({x: xPos + levelManager.brickWidth/2, y: yPos});
+                        b.updateFields();
+                        game.bonuses.push(b); 
+                    }
+                    
+                    if (levelManager.currentLevel.length === 0)
+                    {
+                        render();
+                        game.changeState(GameStates.WIN);
+                    }
+                }
+                game.bullets.splice(game.bullets.indexOf(this), 1);
+            }
+        }
+    },
+    this.render = function(){
+        drawRect({x: this.position.x, y: this.position.y}, {x: this.width, y: this.height}, "#d13131");
     }
 }
 
@@ -656,6 +739,49 @@ var levelManager = {
     }
 }
 
+function bonus(pos) {
+    this.speedRatio = 0.1;
+    this.speed = config.w + config.h;
+    this.widthRatio = 3;
+    this.width = 1 * config.w;
+    this.type = 0,
+
+    this.position = {
+        x: pos.x - this.width/2,
+        y: pos.y
+    },
+
+    this.updateFields = function(){
+        this.width = config.w * this.widthRatio;
+        this.speed = (config.w + config.h) * this.speedRatio; // Скорость зависит от размера карты
+    },
+
+    this.update = function(){
+        this.position.y += this.speed;
+        this.collisionDetection();
+    },
+
+    this.collisionDetection = function(){
+        if (this.position.y + this.width >= canvas.height){
+            game.bonuses.splice(game.bonuses.indexOf(this), 1);
+        }
+        if (this.position.y + this.width >= canvas.height - paddle.size.y &&
+            this.position.x + this.width > paddle.position.x &&
+            this.position.x < paddle.position.x + paddle.size.x)
+        {
+            switch (this.type) {
+                case 0:
+                    game.bonuses.splice(game.bonuses.indexOf(this), 1);
+                    paddle.startFire();
+                    break;
+            }
+        }
+    },
+    this.render = function(){
+        drawRect({x: this.position.x, y: this.position.y}, {x: this.width, y: this.width}, "#31af2e");
+    }
+}
+
 
 // ИГРОВОЙ ЦИКЛ ................................................................
 
@@ -711,9 +837,9 @@ function update() {
     
     control.update();
     paddle.update();
-    game.balls.forEach(element => {
-        element.update();
-    });
+    game.balls.forEach(b => b.update());
+    game.bonuses.forEach(b => b.update());
+    game.bullets.forEach(b => b.update());
 }
 
 function render() {
@@ -721,9 +847,9 @@ function render() {
         game.currentState != GameStates.PLAY &&
         game.currentState != GameStates.PAUSE) return;
     clearCanvas();
-    game.balls.forEach(element => {
-        element.render();
-    });
+    game.balls.forEach(b => b.render());
+    game.bonuses.forEach(b => b.render());
+    game.bullets.forEach(b => b.render());
     paddle.render();
     levelManager.render();
 }
