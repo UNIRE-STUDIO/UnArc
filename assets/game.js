@@ -48,9 +48,15 @@ buttonRestart.onclick = function () {
 
 // Уровень пройден
 var youWinPanel = document.getElementById("win");
-document.getElementById("menu-button").onclick = function () {
-    game.changeState(GameStates.LEVEL_SELECTION);
+var menuButtons = document.getElementsByClassName("menu-buttons");
+for (let i = 0; i < menuButtons.length; i++) 
+{
+    menuButtons[i].onclick = function () {
+        game.changeState(GameStates.LEVEL_SELECTION);
+    }
 }
+
+
 document.getElementById("next-level-button").onclick = function () {
     var nextLevelId = levelManager.currentLevelID+1;
     if (levelManager.levels.length-1 < nextLevelId)
@@ -301,6 +307,7 @@ var game = {
         youWinPanel.style.display = "none";
         pauseButton.style.display = "none";
         pausePanel.style.display = "none";
+        gameOverPanel.style.display = "none";
     },
     _ReadyToPlay(){
         pauseButton.style.display = "block";
