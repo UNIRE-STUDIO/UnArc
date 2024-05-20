@@ -326,6 +326,7 @@ var game = {
         }
         pausePanel.style.display = "none";
         pauseButton.style.display = ""; 
+        paddle.reset();
         game.currentState = GameStates.PLAY;
     },
     _Pause(){
@@ -341,12 +342,14 @@ var game = {
     _Gameover(){
         pauseButton.style.display = "none";
         gameOverPanel.style.display = "block";
+        paddle.reset();
         game.currentState = GameStates.GAMEOVER;
     },
     _Win()
     {
         console.log("Win!");
         youWinPanel.style.display = "block";
+        paddle.reset();
         game.currentState = GameStates.WIN;
     },
     //................................................................
@@ -432,6 +435,7 @@ function ball() {
             // Если шарик косается ракетки
             if (isOverPaddle && isOnALevelPaddle){
                 this.velocity.y = -this.velocity.y;
+                this.position.y = paddle.position.y - this.ballRadius;
             }
             // Если шарик коснулся верхней стенки
             else if (this.position.y + this.velocity.y < this.ballRadius){
@@ -562,6 +566,7 @@ var paddle = {
         x: 0,
         y: 0
     },
+    fireInterval: null,
 
     updateFields(){
         paddle.size.x = 8 * config.w;
@@ -591,15 +596,20 @@ var paddle = {
         if (this.fire) return;
         this.fire = true;
         // повторить с интервалом 2 секунды
-        let fire = setInterval(() => {
+        this.fireInterval = setInterval(() => {
             var b = new bullet({x:this.position.x + this.size.x/2, y:this.position.y});
             b.updateFields();
             game.bullets.push(b);
         }, 500);
 
-        // остановить вывод через 5 секунд
-        setTimeout(() => { clearInterval(fire); this.fire = false; }, 6000);
+        // остановить стрельбу через 6 секунд
+        setTimeout(() => { clearInterval(this.fireInterval); this.fire = false; }, 6000);
+    },
+    reset(){
+        clearInterval(this.fireInterval);
+        this.fire = false;
     }
+
 }
 
 function bullet(pos) {
